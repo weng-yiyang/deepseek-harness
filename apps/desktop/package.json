@@ -1,0 +1,35 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness desktop client (wraps `dsh web`)",
+  "homepage": "https://github.com/weng-yiyang/deepseek-harness",
+  "author": "weng-yiyang",
+  "license": "MIT",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron . --no-updater",
+    "assemble-runtime": "node scripts/assemble-runtime.mjs",
+    "dist": "pnpm run assemble-runtime && electron-builder",
+    "dist:win": "pnpm run assemble-runtime && electron-builder --win",
+    "dist:mac": "pnpm run assemble-runtime && electron-builder --mac",
+    "dist:linux": "pnpm run assemble-runtime && electron-builder --linux",
+    "pack": "npx -y electron-builder --publish=never",
+    "pack:win": "npx -y electron-builder --win --publish=never",
+    "pack:mac": "npx -y electron-builder --mac --publish=never",
+    "pack:linux": "npx -y electron-builder --linux --publish=never"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "workspace:*",
+    "@deepseek-ai/dsh-web-frontend": "workspace:*",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "37.10.3",
+    "electron-builder": "^26.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

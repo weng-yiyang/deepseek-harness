@@ -1,0 +1,97 @@
+name: Build Desktop
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies (repo root)
+        # hoisted node-linker 复现本机 Windows 上的 junction 方案，
+        # 规避 CI Windows runner 的 symlink 权限 / 空目录问题
+        # --no-frozen-lockfile: 本机未重跑 pnpm install 生成新 lockfile，
+        # desktop 包新增的 electron 等依赖未进 pnpm-lock.yaml，
+        # CI 默认 frozen 会报 ERR_PNPM_OUTDATED_LOCKFILE，故关闭冻结校验
+        env:
+          npm_config_node_linker: hoisted
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build backend (lib) and web frontend
+        run: |
+          pnpm run build:lib
+          pnpm --filter @deepseek-ai/dsh-web-frontend run build
+
+      - name: Assemble runtime
+        run: pnpm --filter @deepseek-ai/dsh-desktop run assemble-runtime
+
+      # ---- Windows（设置 CSC_LINK 则自动签名，否则出未签名包）----
+      - name: Build Windows installer
+        if: matrix.platform == 'win'
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: pnpm --filter @deepseek-ai/dsh-desktop run pack:win --
+
+      # ---- macOS（证书存在则签名并公证，否则出未签名包）----
+      - name: Build macOS installer
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_FOR_PULL_REQUEST: 'false'
+        run: |
+          SIGN_FLAG=""
+          if [ -n "$CSC_LINK" ]; then SIGN_FLAG="--config.mac.notarize=true"; fi
+          pnpm --filter @deepseek-ai/dsh-desktop run pack:mac -- $SIGN_FLAG
+
+      # ---- Linux（无需签名）----
+      - name: Build Linux installer
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: pnpm --filter @deepseek-ai/dsh-desktop run pack:linux --
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-${{ matrix.platform }}
+          path: apps/desktop/release/**/*
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/desktop/release/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,46 @@
+appId: ai.deepseek.harness.desktop
+productName: DeepSeek Harness
+# 包名 @deepseek-ai/dsh-desktop 含 @ 与 /，AppImage 等目标拒绝非法文件名；显式给干净可执行名
+executableName: deepseek-harness-desktop
+copyright: Copyright © 2026 DeepSeek
+directories:
+  output: release
+  buildResources: build
+files:
+  - src/**
+  - package.json
+  # 运行时 node 依赖全部由 pnpm deploy 物化到 extraResources/runtime，
+  # 不塞进 asar（避免 hoisted node_modules 的 symlink 循环与超长路径问题）。
+  - '!node_modules/**/*'
+extraResources:
+  - from: dist/runtime
+    to: runtime
+# 生产如需随包内置 Node（Windows 无原生 dsh 二进制），把 Node 放到 node-bin/ 后启用：
+# extraResources:
+#   - from: node-bin
+#     to: runtime/node
+win:
+  target: [nsis]
+  artifactName: ${productName}-${version}-setup.${ext}
+  # 不签名：未设置 CSC_LINK 时 electron-builder 自动出未签名包；
+  # 需要签名时在 CI 注入 CSC_LINK(含 p12 的 base64) + CSC_KEY_PASSWORD 即自动启用。
+mac:
+  target: [dmg]
+  category: public.app-category.developer-tools
+  # 个人自用免签名：identity: null 彻底关闭 mac 代码签名（避免 GitHub runner 无证书时报
+  # "not a file"）；需要公证/签名时在 CI 注入 CSC_LINK/CSC_KEY_PASSWORD/APPLE_ID 等，
+  # 并改回 identity 为开发者证书、hardenedRuntime: true、notarize: true。
+  identity: null
+  hardenedRuntime: false
+  notarize: false
+linux:
+  target: [AppImage, deb]
+  category: Development
+  maintainer: "DeepSeek AI <support@deepseek.com>"
+  # 包名 @deepseek-ai/dsh-desktop 含 /，deb 默认产物名会生成 release/@deepseek-ai/ 子目录导致 fpm 写失败；
+  # 显式给干净 artifactName 规避斜杠与不存在的父目录。
+  artifactName: ${productName}-${version}-${arch}.${ext}
+npmRebuild: false
+nodeGypRebuild: false
+# electron-builder 要求精确版本（不能是 ^范围）：与 devDependency electron 对齐
+electronVersion: 37.10.3

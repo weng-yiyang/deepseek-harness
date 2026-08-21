@@ -14,7 +14,16 @@ import {
 } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import lefthookPackage from 'lefthook/package.json' with { type: 'json' }
+// lefthook 是 devDependency；生产模式安装（如 electron-builder 打包时的
+// `pnpm install --production`）不会安装它，静态导入会直接抛 ERR_MODULE_NOT_FOUND，
+// 导致 postinstall 失败、CI 打包中断。改为容错动态导入：CI 下 main() 本就早退，
+// lefthook 是否就绪不影响产物。
+let lefthookPackage = {}
+try {
+  lefthookPackage = (await import('lefthook/package.json', { with: { type: 'json' } })).default
+} catch {
+  lefthookPackage = {}
+}
 
 const MINIMUM_GIT = [2, 26, 0]
 const HOOKS_DIRECTORY = 'dsh-hooks'
