@@ -2,7 +2,7 @@
   "name": "dsh-desktop",
   "version": "0.1.0",
   "private": true,
-  "author": "weng-yiyang",
+  "author": "weng-yiyang <weng-yiyang@users.noreply.github.com>",
   "description": "DeepSeek Harness Windows 桌面端（Electron 壳：本地服务 + 浏览器窗口）",
   "main": "src/main.js",
   "scripts": {

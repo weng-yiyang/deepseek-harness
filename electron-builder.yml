@@ -27,6 +27,9 @@ mac:
 linux:
   icon: build/icon.png
   category: Development
+  # deb 打包要求 maintainer 含 email；syncDesktopName 消除 WM_CLASS 警告
+  maintainer: "weng-yiyang <weng-yiyang@users.noreply.github.com>"
+  syncDesktopName: true
   target:
     - AppImage
     - deb
@@ -36,10 +39,6 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-# 自动更新走 GitHub Releases。
-# 发布端点指向本仓库（桌面端代码在 desktop-electron 分支，Release 为仓库级），
-# 自动更新据此查找更新。
-publish:
-  - provider: github
-    owner: weng-yiyang
-    repo: deepseek-harness
+# 自动更新机制（electron-updater，main.js 已 try-catch 容错）保留；
+# 但发布动作改为手动：本仓库不发 GitHub Release（仅 CI 上传 Artifact），
+# 故移除 publish 配置，避免 CI 隐式触发发布。如需发版，手动 `electron-builder --publish always`。
