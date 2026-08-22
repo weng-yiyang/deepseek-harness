@@ -170,13 +170,18 @@ function createWindow() {
 // 1x1 透明 PNG，仅在没有 icon.ico 时兜底，避免托盘创建崩溃
 const FALLBACK_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC';
 
-// 定位托盘图标：打包后走 resources/build/icon.ico，开发期走 build/icon.ico
-// （extraResources: from build to build -> process.resourcesPath/build/icon.ico）
+// 定位托盘图标：按平台回退找 icns / png / ico
+// 打包后走 resources/build/*，开发期走 build/*（extraResources: from build to build）
 function trayIconPath() {
-  const candidates = [
-    path.join(process.resourcesPath, 'build', 'icon.ico'),
-    path.join(__dirname, '..', 'build', 'icon.ico'),
-  ];
+  const resBuild = path.join(process.resourcesPath, 'build');
+  const devBuild = path.join(__dirname, '..', 'build');
+  const exts = process.platform === 'darwin'
+    ? ['icns', 'png', 'ico']
+    : ['png', 'ico', 'icns'];
+  const candidates = [];
+  for (const base of [resBuild, devBuild]) {
+    for (const ext of exts) candidates.push(path.join(base, 'icon.' + ext));
+  }
   return candidates.find((p) => fs.existsSync(p)) || null;
 }
 

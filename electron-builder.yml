@@ -18,6 +18,18 @@ win:
   target:
     - nsis
     - portable
+mac:
+  # mac 包默认不签名（CI 无 Apple 证书）；用户首次打开需在“系统设置-隐私与安全性”放行。
+  icon: build/icon.png
+  category: public.app-category.developer-tool
+  target:
+    - dmg
+linux:
+  icon: build/icon.png
+  category: Development
+  target:
+    - AppImage
+    - deb
 nsis:
   oneClick: false
   perMachine: false
@@ -25,9 +37,9 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 # 自动更新走 GitHub Releases。
-# 注意：这里应指向“桌面端应用”自己的发布仓库（发布 dsh-desktop 的 exe），
-# 而不是 deepseek-harness 源码仓库。请改成你自己的仓库名。
+# 发布端点指向本仓库（桌面端代码在 desktop-electron 分支，Release 为仓库级），
+# 自动更新据此查找更新。
 publish:
   - provider: github
     owner: weng-yiyang
-    repo: deepseek-harness-desktop
+    repo: deepseek-harness

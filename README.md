@@ -87,11 +87,11 @@ npm run dist:portable   # 仅便携版
 
 ## 开机自启 / 托盘 / 自动更新
 
-- **开机自启**：默认开启（基于 `app.setLoginItemSettings`），如需关闭可在系统“启动”项中移除。
+- **开机自启**：默认**关闭**（基于 `app.setLoginItemSettings({openAtLogin:false})`，避免把临时目录里的 exe 注册成自启导致多实例）。如需开启，改 `src/main.js` 对应行，或在系统“启动”项中添加。
 - **托盘**：关闭主窗口只是最小化到托盘，不退出进程；右键托盘可打开/退出。
-- **自动更新**：基于 `electron-updater`，默认走 **GitHub Releases**。
-  注意：发布端点应指向“桌面端应用”自己的仓库（发布 dsh-desktop 的 exe），
-  在 `electron-builder.yml` 的 `publish` 里把 `owner/repo` 改成你自己的仓库。
+- **自动更新**：基于 `electron-updater`，走 **GitHub Releases**。
+  发布端点已指向本仓库 `weng-yiyang/deepseek-harness`（桌面端代码在 `desktop-electron` 分支，Release 为仓库级）。
+  自动更新仅在**你在本仓库手动打 tag / 发 Release** 后生效；CI 仅上传构建产物，不发 Release。
   内网离线场景：把 `publish` 整段删掉，或在 `main.js` 里注释 `setupUpdater()`。
 
 ## 图标
@@ -119,3 +119,38 @@ npm run dist:portable   # 仅便携版
 - 体积较大：Electron + dsh 依赖 + 内置 node，安装包约数百 MB。
 - `deepseek-harness` 处于 developer preview，版本可能破坏性变更；`copy-resources.js` 里已锁定 `0.1.1-rc.2`，升级时改此处版本号并回归测试。
 - 自动更新只升“桌面端壳”，不会自动升 dsh 代码；要跟进新 dsh 版本需重新 `npm run dist`。
+
+---
+
+## CI 自动打包（Win / macOS / Linux）
+
+仓库已配置 `.github/workflows/build.yml`，在 **GitHub Actions** 上用矩阵同时为三端出包：
+
+- **触发**：向 `desktop-electron` 分支 `push`，或在 Actions 页面手动 `Run workflow`。
+- **矩阵**：`ubuntu-latest`（→ AppImage + deb）、`macos-latest`（→ dmg，**不签名**）、`windows-latest`（→ NSIS 安装包 + 便携版）。
+- **流程**：`setup-node@22` → `npm install` → `npm run copy-resources`（联网装 `@deepseek-ai/dsh` + 复制内置 node）→ `npm run dist` → 上传 `dist/` 为 Artifact。
+- **产物下载**：在对应 Workflow Run 的 **Artifacts** 区下载（如 `dsh-desktop-windows-latest`）。
+- **发布策略**：CI **仅上传 Artifact，不自动发 Release**。自动更新（见上）需你日后在本仓库手动打 tag / 发 Release 才生效。
+
+> ⚠️ macOS 包未签名（CI 无 Apple 证书）。首次打开需在「系统设置 → 隐私与安全性」点“仍要打开”放行 Gatekeeper；或使用 `xattr -cr /Applications/DeepSeek\ Harness\ 桌面端.app` 清除隔离位。
+> macOS / Linux 为新增目标，建议首次出包后在对应系统实测一轮（本工程主要验证环境为 Windows）。
+
+---
+
+## 分支与推送（SSH）
+
+桌面端代码维护在 **独立分支 `desktop-electron`**，不覆盖 `main`/`desktop` 等其它分支：
+
+```powershell
+# 本机（已配 SSH key，免 token）
+cd D:\Desktop\WorkBuddy\2026-08-22-20-25-56\dsh-desktop
+git remote set-url origin git@github.com:weng-yiyang/deepseek-harness.git
+git checkout -b desktop-electron        # 首次建分支；已有则 git checkout desktop-electron
+git add .
+git commit -m "feat: ..."
+git push -u origin desktop-electron
+```
+
+- 大文件（`node_modules/`、`dist/`、`resources/`）已被 `.gitignore` 排除，仓库只进源码。
+- 推送用本机 SSH key，**不要**再用此前泄露的旧 PAT（请尽快在 GitHub 后台撤销）。
+- 改动后想跑 CI：直接 `push` 到 `desktop-electron` 即可触发；想本地出包仍用 `npm run dist`（见上）。

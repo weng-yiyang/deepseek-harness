@@ -1,0 +1,52 @@
+name: Build Desktop (Win/macOS/Linux)
+
+on:
+  push:
+    branches: [desktop-electron]
+  workflow_dispatch:
+
+# 仅上传每平台的构建产物(Artifact)，不自动发 GitHub Release。
+# 如需自动更新生效，请在本仓库手动打 tag / 发 Release（publish 已指向 weng-yiyang/deepseek-harness）。
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare dsh runtime + bundled node
+        run: npm run copy-resources
+
+      - name: Build (per OS)
+        # mac 不出签名，避免 CI 因缺 Apple 证书而失败
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npm run dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-${{ matrix.os }}
+          if-no-files-found: warn
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.zip
+            dist/*.yml
+            dist/*.blockmap

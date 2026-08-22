@@ -114,6 +114,6 @@ npm run dist
 ## 收尾：图标与自动更新
 
 - **图标**：放一个 `build/icon.ico`（建议 256×256），托盘和 exe 就有正式图标；不放在仅功能正常、图标不可见。
-- **自动更新**：默认走 GitHub Releases，仓库指向 `weng-yiyang/deepseek-harness-desktop`（见 `electron-builder.yml` 的 `publish`）。
+- **自动更新**：默认走 GitHub Releases，仓库指向 `weng-yiyang/deepseek-harness`（桌面端代码在 `desktop-electron` 分支；Release 为仓库级，需你手动打 tag / 发 Release 后才生效，CI 仅上传 Artifact 不发 Release）。
   内网离线场景：删掉 `publish` 整段，或在 `src/main.js` 注释掉 `setupUpdater()`。
-- **开机自启**：默认开启（如需关闭可在系统“启动”项中移除）。
+- **开机自启**：默认**关闭**（如需开启，改 `src/main.js` 的 `app.setLoginItemSettings({openAtLogin:false})` 为 `true`，或在系统“启动”项中添加）。

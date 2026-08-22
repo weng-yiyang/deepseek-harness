@@ -39,6 +39,10 @@ if (fs.existsSync(nodeDest)) {
   console.log('[copy-resources] 已存在 node 运行时，跳过复制：' + nodeDest);
 } else if (fs.existsSync(nodeBin)) {
   fs.copyFileSync(nodeBin, nodeDest);
+  // Linux/macOS 上复制出来的 node 可能丢失可执行位，显式补上，否则打包后启动会 EACCES
+  if (process.platform !== 'win32') {
+    try { fs.chmodSync(nodeDest, 0o755); } catch (e) { console.warn('[copy-resources] chmod 失败（可忽略）:', e.message); }
+  }
   console.log('[copy-resources] 已复制 node 运行时 -> ' + nodeDest);
 } else {
   console.warn('[copy-resources] 未找到 node 本体，请手动放置 resources/node/node.exe');
