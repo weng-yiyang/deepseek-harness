@@ -1,0 +1,20 @@
+{
+  "name": "dsh-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "author": "weng-yiyang",
+  "description": "DeepSeek Harness Windows 桌面端（Electron 壳：本地服务 + 浏览器窗口）",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "copy-resources": "node scripts/copy-resources.js",
+    "dist": "npm run copy-resources && electron-builder",
+    "dist:nsis": "npm run copy-resources && electron-builder --win nsis",
+    "dist:portable": "npm run copy-resources && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-updater": "^6.3.0"
+  }
+}

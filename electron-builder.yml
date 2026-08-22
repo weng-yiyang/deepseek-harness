@@ -1,0 +1,33 @@
+appId: com.wyy.dsh-desktop.portable
+productName: DeepSeek Harness 桌面端
+copyright: Copyright © 2026
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**/*
+  - package.json
+# 把 dsh 运行时（官方自包含包）、独立 node 运行时、托盘/应用图标塞进安装包
+extraResources:
+  - from: resources
+    to: resources
+  - from: build
+    to: build
+win:
+  icon: build/icon.ico
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+# 自动更新走 GitHub Releases。
+# 注意：这里应指向“桌面端应用”自己的发布仓库（发布 dsh-desktop 的 exe），
+# 而不是 deepseek-harness 源码仓库。请改成你自己的仓库名。
+publish:
+  - provider: github
+    owner: weng-yiyang
+    repo: deepseek-harness-desktop
