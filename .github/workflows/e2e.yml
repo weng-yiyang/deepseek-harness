@@ -6,10 +6,12 @@ name: E2E (real DeepSeek API)
 # https://api.deepseek.com (DEEPSEEK_BASE_URL is pinned to it explicitly so a
 # stray repo-root .env can't redirect the run).
 #
-# pull_request IS a trigger, but GitHub withholds repo secrets from BOTH forked
-# PRs and Dependabot PRs (the latter are same-repo, fork==false, but still
-# keyless). The job-level `if:` below skips the whole job for those untrusted
-# PRs. The Dependabot test keys on the PR AUTHOR (pull_request.user.login), not
+# Upstream wires `pull_request` as a trigger, but GitHub withholds repo secrets
+# from BOTH forked PRs and Dependabot PRs (the latter are same-repo,
+# fork==false, but still keyless). The job-level `if:` below skips the whole job
+# for those untrusted PRs — inert while workflow_dispatch is the only trigger,
+# kept so the guard is already correct if PR triggers are restored. The
+# Dependabot test keys on the PR AUTHOR (pull_request.user.login), not
 # github.actor (the run trigger) — a maintainer reopening a Dependabot PR would
 # make github.actor human while the PR is still keyless. When the job runs, the
 # secret is expected, so the preflight hard-fails if it's missing (a missing
@@ -25,22 +27,24 @@ name: E2E (real DeepSeek API)
 # The fork/secret model and its public-repo implications are recorded in
 # .agents/notes/implemented/testing/2026-06-19-real-api-e2e-ci.md.
 #
-# Fork note (weng-yiyang/deepseek-harness): the upstream `schedule` trigger is
-# deliberately ABSENT here. The nightly run consumes DEEPSEEK_API_KEY_EXTERNAL,
-# which this fork does not carry, so every 08:17 Asia/Shanghai run failed at the
-# preflight below and mailed a failure notice — the only thing the cron produced.
-# Upstream (deepseek-ai/deepseek-harness) still runs its own nightly. To run this
-# suite here on demand: configure the repo secret, then dispatch manually.
-# Note: scheduled triggers are auto-disabled after 60 days of repo inactivity;
-# push/pull_request/workflow_dispatch act as backstops.
+# Fork note (weng-yiyang/deepseek-harness): this fork runs the suite ONLY on
+# manual dispatch. Every automatic trigger upstream wires is absent here for the
+# same single reason — they all consume DEEPSEEK_API_KEY_EXTERNAL, which this
+# fork does not carry, so they cannot ever report anything but the preflight
+# failure below:
+#   - `schedule`: the 08:17 Asia/Shanghai nightly mailed a failure notice every
+#     day and produced no signal at all.
+#   - `push` (main/master) and `pull_request`: these mail a notice on every push
+#     and every PR while the secret is missing.
+# Upstream (deepseek-ai/deepseek-harness) still runs its own nightly and its own
+# PR gates against its own secret, so nothing is lost by staying dark here.
+# To re-enable: add the repo secret, then restore the triggers you want below.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
-  pull_request:
 
-# Cancel a superseded PR run (it is on a stale commit); never cancel a
-# push run — it is already producing the post-merge signal.
+# Kept so the guard is already in place if automatic triggers are restored
+# above. With workflow_dispatch as the only trigger, cancel-in-progress is false
+# for every run — a dispatched run is never cancelled by a newer one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
